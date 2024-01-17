@@ -16,6 +16,14 @@ os.environ['state'] = 'IDLE'
 class SimpleRequestHandler(BaseHTTPRequestHandler):
     result = None  # Shared result variable
     stop_event_flag = None  # Shared stop_event_flag variable
+    
+    def do_OPTIONS(self):
+        self.send_response(200, "ok")
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, OPTIONS')
+        self.send_header("Access-Control-Allow-Headers", "X-Requested-With")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.end_headers()
 
     def do_POST(self):
         # Get the length of the incoming data
@@ -26,12 +34,20 @@ class SimpleRequestHandler(BaseHTTPRequestHandler):
 
         # Decode the JSON data
         data = json.loads(post_data.decode('utf-8'))
+        
+        self.send_response(200)
+        self.send_header('Content-type', 'application/json')
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.end_headers()
 
         # Check if the request path matches the desired endpoint for starting or stopping
         if self.path == '/start_trigger':
             if os.environ['state'] == 'LOCKED':
                 logger.info("Trigger in locked state...")
                 logger.info("Dropping the trigger")
+                
                 # Send a response
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')

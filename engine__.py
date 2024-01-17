@@ -2,9 +2,6 @@ import sys
 from inventory import *
 import threading
 import logging
-import os
-import logging
-from http_endpoint import SimpleRequestHandler
 
 # Setting the Path
 sys.path.append(r'D:/backup/PRO/')
@@ -13,7 +10,7 @@ sys.path.append(r'D:/backup/PRO/')
 stop_event = threading.Event()
 
 # Configure the logger
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 # Define function flow
@@ -28,47 +25,34 @@ def pipe():
                 logger.info("Initiate SSH connection....")
                 val_json,layer_info = initiate_ssh(up_device)
                 ping_status = json.dumps(ping_status)
-                url = "http://127.0.0.1:5000/receive_data" 
+                url = "http://192.168.0.97:5000/receive_data" 
                 headers = {'Content-Type': 'application/json'}
                 data_to_send = {'ping_status': ping_status, 'interface_status': val_json, 'layer_info': layer_info}
                 response = requests.post(url, json=data_to_send, headers=headers)
                 logger.info("Recieved 200OK")
-                os.environ['state'] = 'IDLE'
-                logger.info("Trigger lock set IDLE")
-                # Set the shared variables
-                
-                logger.info("Releasing trigger state")
-                SimpleRequestHandler.result = None
-                SimpleRequestHandler.stop_event_flag = None
-                
                 return response
         except:
                 logger.critical("Failed to send send data to flask server")
-                os.environ['state'] = 'IDLE'
-                logger.info("Released Trigger Lock")
-                logger.info("Releasing trigger state")
-                SimpleRequestHandler.result = None
-                SimpleRequestHandler.stop_event_flag = None
-                return True
+                return False
             
 # Define Runtime for engine
-def engin(interval_seconds=0):
+def engin(interval_seconds):
     stop_event = threading.Event()
     while not stop_event.is_set():
         pipe()
-        break
-    return 1
+        time.sleep(interval_seconds)
         
 # Function For Start Engin
-def start_engin():
+def start_engin(interval_seconds):
     stop_event = threading.Event()
-    engine_thread = threading.Thread(target=engin, args=(1,))
+    engine_thread = threading.Thread(target=engin, args=(interval_seconds,))
     engine_thread.start()
-    return engine_thread, stop_event
+    return engine_thread
     
 # Function For Stop Engin   
-def stop_engin(instance,stop_event):
-    instance.stopped = True  
+def stop_engin(instance):
+    stop_event.set()   
     instance.join()
-    return 1
+if __name__ == "__main__":
+   instance = start_engin(8)
     

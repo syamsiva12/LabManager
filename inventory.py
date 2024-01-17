@@ -145,7 +145,10 @@ def initiate_ssh(l):
                 arp_status = obj.run_execmcd('arp -a')
                 for i in interface:
                     link = obj.run_execmcd(f"ethtool {i} | grep 'Link detected' | awk '{{print $3}}'")
-                    status[i] = link.strip()
+                    if(link.strip() == 'yes'):
+                        status[i] = 'UP'
+                    else:
+                        status[i] = 'DOWN'
                 tag = get_tag(ip)
                 tag = tag[0][0]
                 status_check[tag] = status
